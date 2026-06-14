@@ -52,7 +52,10 @@ cd module
 OAID=12345678-90ab-cdef-1234-567890abcdef ./build.sh
 ```
 
-`build.sh` 流程:javac 编译(编译期只引用 `stubs/` 里的 Xposed 桩,不打进 APK)→ `d8` 转 dex → `aapt2` 打包 → `zipalign` → `apksigner`(自动生成调试签名)。
+`build.sh` 流程:javac 编译(编译期只引用 `stubs/` 里的 Xposed 桩,不打进 APK)→ `d8` 转 dex → `aapt2` 打包 → `zipalign` → `apksigner`。
+
+> **关于签名:无需自带 keystore。** 首次编译会自动生成一个调试 keystore(`module/debug.keystore`,已 gitignore),之后复用同一个 key,所以重复编译后 `adb install -r` 仍可覆盖更新。
+> 注意:自己编译出来的 APK 与本仓库 Release 里的 APK 是**不同签名**的,二者不能互相覆盖安装——切换时先 `adb uninstall com.oaidfix`。也可用 `KEYSTORE=/path/to/your.keystore ./build.sh` 指定自己的 key。
 
 ---
 

@@ -22,6 +22,10 @@ fi
 
 echo "SDK=$SDK"; echo "build-tools=$(basename "$BT")"; echo "android.jar=$AJ"
 
+# Persistent debug keystore (kept OUTSIDE build/, which is wiped each run, so
+# repeated builds keep the same signing key -> `adb install -r` keeps working).
+KS="${KEYSTORE:-debug.keystore}"
+
 # Optional: override the supplied OAID via env, e.g. `OAID=xxxx-... ./build.sh`
 SRC="src/com/oaidfix/OaidModule.java"
 if [ -n "${OAID:-}" ]; then
@@ -52,10 +56,11 @@ cp assets/xposed_init build/stage/assets/xposed_init
 
 echo ">> align + sign"
 "$BT/zipalign" -f 4 build/base.apk build/aligned.apk
-if [ ! -f build/debug.keystore ]; then
-  "$KEYTOOL" -genkeypair -keystore build/debug.keystore -storepass android -keypass android \
+if [ ! -f "$KS" ]; then
+  echo ">> generating debug keystore: $KS"
+  "$KEYTOOL" -genkeypair -keystore "$KS" -storepass android -keypass android \
     -alias oaid -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=OAID Provider" >/dev/null 2>&1
 fi
-"$BT/apksigner" sign --ks build/debug.keystore --ks-pass pass:android --key-pass pass:android \
+"$BT/apksigner" sign --ks "$KS" --ks-pass pass:android --key-pass pass:android \
   --out oaid-provider.apk build/aligned.apk
 "$BT/apksigner" verify oaid-provider.apk >/dev/null && echo "OK -> $(pwd)/oaid-provider.apk"
