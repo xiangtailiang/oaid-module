@@ -30,7 +30,7 @@ KS="${KEYSTORE:-debug.keystore}"
 SRC="src/com/oaidfix/OaidModule.java"
 if [ -n "${OAID:-}" ]; then
   echo "Injecting OAID=$OAID"
-  perl -0pi -e 's/(private static final String OAID = ")[^"]*(")/${1}'"$OAID"'${2}/' "$SRC"
+  perl -0pi -e 's/(String OAID = ")[^"]*(")/${1}'"$OAID"'${2}/' "$SRC"
 fi
 
 rm -rf build && mkdir -p build/classes build/stubs build/dex build/stage/assets
