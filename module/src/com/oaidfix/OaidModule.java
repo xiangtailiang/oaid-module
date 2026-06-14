@@ -52,10 +52,12 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
  *  5) ContentResolver.query/.call   -> vendors that expose OAID via a provider
  *     (Meizu / Vivo / Nubia).
  *  6) MSA SDK MdidSdkHelper.InitSdk -> the com.bun.miitmdid unified SDK path.
+ *  7) Class.forName -> Xiaomi/Redmi reflection path: hand back a bundled
+ *     com.android.id.impl.IdProviderImpl when the real (absent) class fails.
  */
 public class OaidModule implements IXposedHookLoadPackage {
 
-    private static final String OAID = "a0f4dafe-b794-4478-9383-e391bb03e918";
+    public static final String OAID = "a0f4dafe-b794-4478-9383-e391bb03e918";
     private static final String TAG = "[OAID] ";
 
     // Vendor OAID service packages (for getPackageInfo + bindService matching).
@@ -103,6 +105,7 @@ public class OaidModule implements IXposedHookLoadPackage {
             hookPackageManager(cl);
             hookBindService(cl);
             hookContentResolver(cl);
+            hookXiaomi(cl);
             hookMsaSdk(cl, lpparam.packageName);
         } catch (Throwable t) {
             XposedBridge.log(TAG + "init error in " + lpparam.packageName + ": " + t);
@@ -298,6 +301,25 @@ public class OaidModule implements IXposedHookLoadPackage {
                     b.putString("message", "");
                     param.setResult(b);
                     XposedBridge.log(TAG + "faked nubia provider OAID");
+                }
+            }
+        });
+    }
+
+    // ---- 7) Xiaomi/Redmi reflection: com.android.id.impl.IdProviderImpl -------
+    private void hookXiaomi(ClassLoader cl) {
+        // Only acts when the real Class.forName fails (class absent on AOSP) and
+        // the requested name is exactly the MIUI provider, so normal class
+        // loading is untouched.
+        XposedBridge.hookAllMethods(Class.class, "forName", new XC_MethodHook() {
+            @Override
+            protected void afterHookedMethod(MethodHookParam param) {
+                if (!param.hasThrowable()) return;
+                Object[] a = param.args;
+                if (a == null || a.length == 0 || !(a[0] instanceof String)) return;
+                if ("com.android.id.impl.IdProviderImpl".equals(a[0])) {
+                    param.setResult(com.android.id.impl.IdProviderImpl.class);
+                    XposedBridge.log(TAG + "served Xiaomi IdProviderImpl reflectively");
                 }
             }
         });

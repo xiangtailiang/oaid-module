@@ -20,13 +20,15 @@
 | 4 | `ContextImpl.unbindService` | 吞掉伪造连接的解绑,避免 `Service not registered` 崩溃 |
 | 5 | `ContentResolver.query` / `call` | 通过 ContentProvider 暴露 OAID 的厂商(Meizu / Vivo / Nubia) |
 | 6 | `com.bun.miitmdid.core.MdidSdkHelper.InitSdk` | MSA 统一 SDK 路径(构造 `IdSupplier` 代理并回调 `OnSupport`) |
+| 7 | `java.lang.Class.forName` | Xiaomi/Redmi 反射路径:原查找失败且类名为 `com.android.id.impl.IdProviderImpl` 时,返回模块内置的同名类,反射即可取到 OAID |
 
 ### 覆盖范围
 
 - **bindService AIDL（主路径,大多数 App）**：OPPO / OnePlus / realme（heytap `com.heytap.openid`）、OPPO stdid（`com.oplus.stdid` / `com.coloros.mcs`）、Samsung、ASUS、Lenovo/Moto/ZUI、Coolpad、Freeme、360/Qiku、Huawei OPENIDS service、MSA service（`com.mdid.msa`）。
 - **ContentProvider**：Meizu、Vivo、Nubia。
 - **MSA 统一 SDK**：`com.bun.miitmdid`。
-- **不覆盖**：Xiaomi（`com.android.id.impl.IdProviderImpl` 反射）、Huawei/Honor HMS（`AdvertisingIdClient`）——这些依赖只存在于对应原厂系统上的类,在 AOSP 上本就不存在,无需也无法伪造。
+- **Xiaomi/Redmi 反射**：`com.android.id.impl.IdProviderImpl#getOAID(Context)`(模块内置同名类 + hook `Class.forName`,在 AOSP 上也能用)。
+- **不覆盖**：Huawei/Honor HMS（`AdvertisingIdClient`)——依赖只存在于华为/荣耀原厂系统上的 HMS 类,AOSP 上本就不存在,无需也无法伪造。
 
 ---
 
